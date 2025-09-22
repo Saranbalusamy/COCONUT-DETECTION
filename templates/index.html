@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🥥 Coconut Detection Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .video-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-start {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-stop {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .video-feed {
+            width: 100%;
+            height: 400px;
+            border-radius: 10px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .video-feed img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        .placeholder {
+            color: #666;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .session-info {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: white;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🥥 Coconut Detection Dashboard</h1>
+        <p>AI-powered coconut quality analysis</p>
+    </div>
+
+    <div class="session-info">
+        <p>Session started: <span id="sessionStart">Not started</span></p>
+        <p>Duration: <span id="sessionDuration">00:00:00</span></p>
+    </div>
+
+    <div class="container">
+        <div class="video-section">
+            <div class="controls">
+                <button type="button" class="btn btn-start" id="startBtn" onclick="startDetection()">
+                    🚀 Start Detection
+                </button>
+                <button type="button" class="btn btn-stop" id="stopBtn" onclick="stopDetection()" disabled>
+                    🛑 Stop Detection
+                </button>
+            </div>
+            <div class="video-feed" id="videoFeed">
+                <div class="placeholder">
+                    📷<br>Click "Start Detection" to begin
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isDetecting = false;
+        let sessionStartTime = null;
+        let refreshInterval = null;
+
+        function startDetection() {
+            fetch('/start_detection', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                        return;
+                    }
+                    
+                    isDetecting = true;
+                    sessionStartTime = new Date();
+                    
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('stopBtn').disabled = false;
+                    document.getElementById('sessionStart').textContent = sessionStartTime.toLocaleString();
+                    
+                    // Update video feed
+                    document.getElementById('videoFeed').innerHTML = '<img src="/video_feed" alt="Live Feed">';
+                    
+                    // Start session timer
+                    updateSessionDuration();
+                    setInterval(updateSessionDuration, 1000);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to start detection');
+                });
+        }
+
+        function stopDetection() {
+            fetch('/stop_detection', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    isDetecting = false;
+                    
+                    document.getElementById('startBtn').disabled = false;
+                    document.getElementById('stopBtn').disabled = true;
+                    
+                    // Clear video feed
+                    document.getElementById('videoFeed').innerHTML = '<div class="placeholder">📷<br>Detection stopped</div>';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to stop detection');
+                });
+        }
+
+        function updateSessionDuration() {
+            if (!sessionStartTime) return;
+            
+            const now = new Date();
+            const duration = now - sessionStartTime;
+            const hours = Math.floor(duration / 3600000);
+            const minutes = Math.floor((duration % 3600000) / 60000);
+            const seconds = Math.floor((duration % 60000) / 1000);
+            
+            document.getElementById('sessionDuration').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+    </script>
+</body>
+</html>
